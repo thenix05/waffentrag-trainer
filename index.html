@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0;-webkit-text-size-adjust:100%}[hidden]{display:none!important}*{box-sizing:border-box}</style>
+<title>Waffentrag-Trainer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: single study column; sticky control bar; one card at a time or full list */
+:root{
+  --bg:#f3f3f1; --surface:#ffffff; --ink:#1c1d20; --muted:#62656c; --line:#dcdcd8;
+  --accent:#b8232b; --accent-soft:#f6e3e3; --ok:#2f7a4a; --ok-soft:#e1f0e6; --bad:#b8232b;
+  --display:"Archivo",system-ui,sans-serif; --body:"Source Serif 4",Georgia,serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141518; --surface:#1d1f23; --ink:#ececea; --muted:#9a9ca3; --line:#2e3036;
+  --accent:#ec5a60; --accent-soft:#3a1d20; --ok:#5fbf82; --ok-soft:#18301f; --bad:#ec5a60; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141518; --surface:#1d1f23; --ink:#ececea; --muted:#9a9ca3; --line:#2e3036;
+  --accent:#ec5a60; --accent-soft:#3a1d20; --ok:#5fbf82; --ok-soft:#18301f; --bad:#ec5a60; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px;display:flex;flex-direction:column;gap:20px}
+header h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,6vw,40px);letter-spacing:-.02em;margin:0;line-height:1.05;text-wrap:balance}
+header h1 span{color:var(--accent)}
+header p{margin:6px 0 0;color:var(--muted);font-size:15px}
+.bar{display:flex;flex-direction:column;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lbl{font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+button{font:inherit;cursor:pointer}
+.chip{font-family:var(--display);font-size:13px;font-weight:500;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip:focus-visible,.btn:focus-visible,.card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.prog{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.track{flex:1;height:8px;background:var(--line);border-radius:4px;overflow:hidden;display:flex}
+.track i{display:block;height:100%}
+.track .k{background:var(--ok)} .track .n{background:var(--bad)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:16px}
+.meta{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.tag{font-family:var(--display);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.q{font-weight:600;font-size:clamp(18px,3.4vw,21px);line-height:1.4;margin:0;text-wrap:pretty}
+.ans{border-top:1px dashed var(--line);padding-top:14px;display:flex;flex-direction:column;gap:8px}
+.ans ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.ans li{display:grid;grid-template-columns:26px 1fr;gap:6px}
+.ans li b{font-family:var(--mono);font-weight:500;color:var(--accent);font-size:14px;padding-top:2px}
+.hint{color:var(--muted);font-size:14px;font-family:var(--display);margin-top:auto}
+.st{font-family:var(--display);font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+.st.k{background:var(--ok-soft);color:var(--ok)} .st.n{background:var(--accent-soft);color:var(--bad)}
+.actions{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:8px}
+.btn{font-family:var(--display);font-weight:700;font-size:15px;padding:12px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.btn.no{background:var(--accent-soft);color:var(--bad);border-color:transparent}
+.btn.yes{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.btn:disabled{opacity:.4;cursor:default}
+.keys{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center}
+.list{display:flex;flex-direction:column;gap:12px}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.item .q{font-size:17px}
+.empty{color:var(--muted);text-align:center;padding:40px 0;font-family:var(--display)}
+.reset{background:none;border:0;color:var(--muted);font-family:var(--display);font-size:13px;text-decoration:underline;padding:0}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:start;text-align:left;font-family:var(--body);font-size:16px;line-height:1.45;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.opt .box{width:26px;height:26px;border-radius:6px;border:1.5px solid var(--muted);display:grid;place-items:center;font-family:var(--mono);font-size:13px;color:var(--muted)}
+.opt.on{border-color:var(--ink)} .opt.on .box{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.opt:disabled{cursor:default}
+.opt.good{border-color:var(--ok);background:var(--ok-soft)} .opt.good .box{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.opt.miss{border:1.5px dashed var(--ok)} .opt.miss .box{border-color:var(--ok);color:var(--ok)}
+.opt.wrongsel{border-color:var(--bad);background:var(--accent-soft)} .opt.wrongsel .box{background:var(--bad);border-color:var(--bad);color:var(--surface)}
+.opt.dim{opacity:.55}
+.opt .note{font-family:var(--display);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding-top:4px}
+.opt.good .note,.opt.miss .note{color:var(--ok)} .opt.wrongsel .note{color:var(--bad)}
+.opt:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.verdict{margin:0;font-family:var(--display);font-weight:700;font-size:15px}
+.verdict.k{color:var(--ok)} .verdict.n{color:var(--bad)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.foot{border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:13px;line-height:1.5}
+.foot p{margin:0;max-width:65ch}
+.foot a{color:inherit}
+@media (max-width:520px){.actions{grid-template-columns:1fr 1fr}.actions .nav{order:2}.actions #check,.actions #next2{grid-column:1/-1!important}.keys{display:none}}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.opt:not(:disabled):hover{border-color:var(--muted)}}
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <h1>Prüfung <span>Waffentragen</span></h1>
+    <p>Alle 106 Fragen des fedpol-Fragenkatalogs (Stand 02.10.2019). Klicke alle richtigen Antworten an; richtig wird automatisch gezählt, ein Fehlklick als nicht gewusst. Die falschen Vorschläge sind ergänzt, die richtigen stammen aus dem Katalog.</p>
+  </header>
+
+  <section class="bar" aria-label="Einstellungen">
+    <div class="row"><span class="lbl">Modus</span>
+      <button class="chip" data-mode="cards" id="m-cards">Quiz</button>
+      <button class="chip" data-mode="list" id="m-list">Liste lesen</button>
+      <button class="chip" id="shuffle" aria-pressed="false">Mischen</button>
+    </div>
+    <div class="row" id="filters"><span class="lbl">Thema</span></div>
+    <div class="prog"><div class="track"><i class="k" id="pk"></i><i class="n" id="pn"></i></div><span id="ptxt"></span></div>
+    <div class="row" style="justify-content:space-between">
+      <span class="prog" id="restxt"></span>
+      <button class="reset" id="reset">Fortschritt zurücksetzen</button>
+    </div>
+  </section>
+
+  <main id="view"></main>
+  <footer class="foot">
+    <p>Privates Lernprojekt, kein offizielles Angebot des Bundes. Fragen und richtige Antworten stammen aus dem öffentlich publizierten Fragenkatalog «Prüfung Waffentragen» des Bundesamts für Polizei fedpol (Stand 02.10.2019). Die falschen Antwortvorschläge sind selbst ergänzt. Massgebend sind die Unterlagen von <a href="https://www.fedpol.admin.ch" rel="noopener">fedpol.admin.ch</a>; Angaben ohne Gewähr.</p>
+  </footer>
+</div>
+
+<script>
+const D=[
+["Ist ein Selbstverteidigungsspray mit dem Reizstoff CN eine Waffe im Sinne des Waffengesetzes?",["Ja, dieser Spray ist eine Waffe und kann nur mit einem Waffenerwerbsschein erworben werden."]],
+["Artikel 26 der Waffenverordnung verbietet gewisse Arten von Munition. Dürfen Sie noch vorrätige Munition, welche unter diese Verordnung fällt, weiterhin verschiessen?",["Ja, die Verordnung regelt nicht die Verwendung."]],
+["Sie möchten eine/mehrere Gasschusswaffe/n (Ausschuss vorne, Lauf nicht verschlossen) in die Schweiz importieren. Unter welchen Voraussetzungen ist dies gestattet?",["Ich benötige eine Einfuhrgenehmigung im Sinne des Waffengesetzes (WG), da diese Gasschusswaffen als Waffen im Sinne des WG gelten.","Ich muss diese Gasschusswaffen bei der Einfuhr beim Zoll anmelden."]],
+["Was gehört zum gesetzlich vorgeschriebenen Inhalt des schriftlichen Vertrages für die Übertragung einer Waffe?",["Namen, Vornamen, Geburtsdatum, Wohnadresse und Unterschrift der Person, welche die Waffe erwirbt.","Waffenart, Hersteller oder Herstellerin, Bezeichnung, Waffennummer sowie Ort und Datum der Übertragung.","Namen, Vornamen, Geburtsdatum, Wohnadresse und Unterschrift der Person, welche die Waffe überträgt."]],
+["Sie haben als Privatperson Ihre Waffe einem Kollegen verkauft. Wie lange müssen Sie den schriftlichen Vertrag aufbewahren?",["Mindestens 10 Jahre."]],
+["Wie viele Waffen dürfen beim gleichen Veräusserer mit einem Waffenerwerbsschein gleichzeitig erworben werden?",["Die bewilligte Anzahl, höchstens 3."]],
+["Sie sind auf Reisen im Ausland. In einem Geschäft entdecken Sie einen Dolch mit einer symmetrischen, spitz zulaufenden Klinge von 20 cm Länge. Dürfen Sie diesen Gegenstand in die Schweiz einführen?",["Ja, mit einer Einfuhrgenehmigung der Zentralstelle Waffen und in Verbindung mit einer kantonalen Ausnahmebewilligung."]],
+["Sie sind als Privatperson auf Reisen im Ausland. In einem Geschäft entdecken Sie einen 20 cm langen, asymmetrischen Dolch, versehen mit einer Säge auf dem Rücken der Klinge. Dürfen Sie diesen Gegenstand in die Schweiz einführen?",["Ja, der asymmetrische Dolch gilt nicht als Waffe und kann bewilligungsfrei eingeführt werden."]],
+["Sie haben ein einhändig bedienbares, nichtautomatisches Klappmesser, das geöffnet insgesamt mehr als 12 cm lang ist und dessen Klinge um 8 cm aus dem Griff ragt, geerbt. Dürfen Sie diesen Gegenstand tragen?",["Ja, wenn es die Umstände rechtfertigen. Ansonsten wäre es ein missbräuchliches Tragen eines gefährlichen Gegenstandes."]],
+["Sie haben ein einhändig bedienbares nichtautomatisches Klappmesser, das geöffnet insgesamt weniger als 12 cm lang ist und dessen Klinge eine Länge von 5 cm aufweist, geerbt. Dürfen Sie diesen Gegenstand tragen?",["Ja, wenn es die Umstände rechtfertigen. Ansonsten wäre es ein missbräuchliches Tragen eines gefährlichen Gegenstandes."]],
+["Ein Schweizer möchte einen Karabiner 31 im Handel erwerben. Benötigt er für den Erwerb dieser Waffe einen Waffenerwerbsschein?",["Nein"]],
+["Sie möchten eine zu einer halbautomatischen Waffe umgebaute Seriefeuerwaffe erwerben (es handelt sich nicht um eine schweizerische Ordonnanz-Seriefeuerwaffe). Brauchen Sie für den Erwerb dieser Waffe eine Bewilligung?",["Ja, eine kantonale Ausnahmebewilligung."]],
+["Sie möchten bei einem Waffenhändler eine Pump-Action (Vorderschaftrepetierer) erwerben. Brauchen Sie für den Erwerb dieser Waffe einen Waffenerwerbsschein?",["Ja"]],
+["Sie sind Eigentümer einer Sportpistole (Kaliber .22 l.r.) und begeben sich an eine Schiesssportveranstaltung ins Ausland. Müssen Sie Ihre Waffe bei der Wiedereinreise in die Schweiz am Zoll anmelden?",["Nein, wenn die Waffe mit einem EFWP eingeführt wird."]],
+["Kann ein Ordonnanz-Sturmgewehr im Originalzustand erworben werden?",["Ja, mit einer kantonalen Ausnahmebewilligung."]],
+["Sie besitzen eine Gasschusswaffe mit einer Vorrichtung zum Verschiessen von pyrotechnischen Gegenständen (Abschussbecher). Dürfen Sie diese Waffe, zu Ihrem Selbstschutz, in der Öffentlichkeit tragen?",["Ja, wenn ich über eine Waffentragbewilligung verfüge."]],
+["Wie und unter welchen Umständen darf eine Druckluft- und CO2-Waffe transportiert werden?",["Ab Domizil auf direktem Weg zu Fachveranstaltungen."]],
+["Kann eine vollautomatische Faustfeuerwaffe erworben werden?",["Ja, mit einer kantonalen Ausnahmebewilligung."]],
+["Sie besitzen ein einhändig bedienbares manuelles Klappmesser, das geöffnet insgesamt mehr als 12 cm lang ist und dessen Klinge mehr als 5 cm aus dem Griff herausragt. Dürfen Sie es beim nächtlichen Ausgang auf sich tragen?",["Ja, wenn es die Umstände rechtfertigen. Ansonsten wäre es ein missbräuchliches Tragen eines gefährlichen Gegenstandes.","Nein, weil es situationsbezogen der falsche Zeitpunkt und falsche Ort ist. Es wäre ein missbräuchliches Tragen eines gefährlichen Gegenstandes und könnte eingezogen werden."]],
+["Welche Waffen gelten gemäss Waffenrecht als antik?",["Hieb-, Stich- und andere Waffen, die vor dem Jahr 1900 hergestellt wurden.","Feuerwaffen, die vor 1870 hergestellt wurden."]],
+["Sie sind auf Reisen im Ausland. In einem Waffengeschäft sehen Sie eine Feuerwaffe in der Gestalt eines Spazierstocks. Dürfen Sie eine solche Waffe in die Schweiz einführen?",["Ja, mit einer Ausnahmebewilligung der Zentralstelle Waffen."]],
+["Sie sind auf Reisen im Ausland. In einem Waffengeschäft sehen Sie einen Spazierstock mit einer Vorrichtung, mit welcher eine 25 cm lange symmetrische Klinge am unteren Ende des Spazierstocks ausgefahren werden kann. Dürfen Sie ein solches Gerät in die Schweiz einführen?",["Ja, mit einer Ausnahmebewilligung der Zentralstelle Waffen."]],
+["Sie sind auf Reisen im Ausland. In einem Geschäft entdecken Sie einen Gegenstand, der wie eine Pistole aussieht, der aber in Wahrheit ein Feuerzeug ist. Dürfen Sie einen solchen Gegenstand einführen?",["Ja, mit einer Bewilligung der Zentralstelle Waffen."]],
+["Sie haben eine grosse Waffensammlung geerbt. Darunter befindet sich auch eine zu einer halbautomatischen Faustfeuerwaffe umgebaute Seriefeuerwaffe. Dürfen Sie diese Waffe tragen?",["Ja, wenn ich Inhaber einer entsprechenden kantonalen Waffentragbewilligung bin."]],
+["Welche Gegenstände gelten als Waffenzubehör?",["Nachtsichtzielgeräte, sowie deren besonders konstruierten Bestandteile.","Laserzielgeräte, sowie deren besonders konstruierten Bestandteile.","Schalldämpfer, sowie deren besonders konstruierten Bestandteile.","Granatwerfer, die als Zusatz zu einer Feuerwaffe konstruiert wurden."]],
+["Welche gesetzlichen Voraussetzungen müssen erfüllt sein, damit ein Waffenerwerbsschein erteilt werden kann?",["Vollendung des 18. Altersjahres.","Kein Strafregistereintrag wegen einer Handlung, die eine gewalttätige oder gemeingefährliche Gesinnung bekundet oder wegen wiederholt begangener Verbrechen oder Vergehen.","Darf nicht unter umfassender Beistandschaft stehen oder durch keine vorsorgebeauftragte Person vertreten werden.","Angabe des Erwerbsgrundes ausser zu Sport-, Jagd- oder Sammlerzwecken.","Wenn kein Anlass zu Selbst- oder Drittgefährdung mit der Waffe besteht."]],
+["Sie möchten als Privatperson Ihre Faustfeuerwaffe, eine Glock 17 mit Standardmagazin an einen Schweizer verkaufen. Welche Schritte müssen Sie unternehmen?",["Ich muss Identität und Alter des Erwerbers anhand eines amtlichen Ausweises überprüfen.","Ich darf die Waffe nur verkaufen, wenn der Käufer mir einen gültigen Waffenerwerbsschein für diese Waffe vorweisen kann.","Einreichen einer Kopie des Waffenerwerbsscheins innerhalb von 30 Tagen an die Behörde, welche den Waffenerwerbsschein ausgestellt hat."]],
+["Sie sind Eigentümer einer zu einer halbautomatischen Waffe umgebauten Seriefeuerwaffe. Was ist bei deren Aufbewahrung speziell zu beachten?",["Der Verschluss ist getrennt von der übrigen Waffe und unter Verschluss aufzubewahren."]],
+["Für wie lange kann eine Waffentragbewilligung längstens erteilt werden?",["Für 5 Jahre"]],
+["Was müssen Sie beachten, wenn Sie mit Ihrer Feuerwaffe zum Schiessstand Ihres Schützenvereins unterwegs sind (Ihre Waffentragbewilligung gilt nicht für diese Art von Waffen)?",["Sie dürfen die Waffe nur so lange mitführen, als es für die Tätigkeit, die dazu berechtigt, angemessen erscheint.","Es darf sich keine Munition in den Magazinen befinden.","Waffe und Munition müssen getrennt sein."]],
+["Was müssen Sie beachten, wenn Sie mit Ihrer Feuerwaffe zum Schiessstand unterwegs sind?",["Es darf sich keine Munition in den Magazinen befinden.","Ich darf die Waffe nur so lange transportieren, als es für die Tätigkeit, die dazu berechtigt, angemessen erscheint.","Waffe und Munition müssen getrennt sein."]],
+["Sie haben vor dem 1.1.1999 einen symmetrisch geschliffenen Dolch mit einer Klingenlänge von 25 cm erworben. Dürfen Sie diesen nach dem aufgeführten Datum noch tragen?",["Nein, ausser ich verfüge über eine entsprechende Tragbewilligung."]],
+["Sie möchten als Privatperson Ihre Faustfeuerwaffe mit einem Magazin von 18 Patronen an einen französischen Staatsangehörigen mit Niederlassungsbewilligung in der Schweiz verkaufen. Was müssen Sie beachten?",["Ich muss vom Erwerber einen Waffenerwerbsschein verlangen.","Ich muss Identität und Alter des Erwerbers anhand eines amtlichen Ausweises überprüfen."]],
+["Sie möchten als Privatperson Ihre Faustfeuerwaffe, eine SIG P226 mit 32 Schuss Magazin, an einen deutschen Staatsangehörigen ohne Niederlassungsbewilligung in der Schweiz verkaufen. Was müssen Sie beachten?",["Ich muss Identität und Alter des Erwerbers anhand eines amtlichen Ausweises überprüfen.","Ich muss vom Erwerber eine kantonale Ausnahmebewilligung verlangen."]],
+["Sie sind Eigentümer einer Sportpistole (Kaliber 9 mm Para) und begeben sich an eine Schiesssportveranstaltung ins Ausland. Müssen Sie Ihre Waffe bei der Wiedereinreise in die Schweiz am Zoll anmelden?",["Nein"]],
+["Sie beobachten, wie jemand eine Scheibe des Autos Ihres Nachbars einschlägt und anschliessend hinter dem Lenkrad Platz nimmt. Was dürfen Sie tun?",["Ich darf mit meinem Messer einen Reifen des Autos aufschlitzen, um zu verhindern, dass es gestohlen wird."]],
+["Sie tragen mit Bewilligung eine Pistole. Auf Ihrer Nachtpatrouille werden Sie von einer Gruppe Jugendlicher verbal bedroht. Was dürfen Sie tun?",["Sie dürfen Ihre Jacke öffnen, damit Ihre Schusswaffe gesehen werden kann und die Gruppe abgeschreckt wird."]],
+["Anlässlich einer Polizeirazzia im Prostituiertenmilieu werden auch Sie als Sicherheitsagent und Waffenträger verhaftet. Sie sind der Meinung, dass Sie sich nichts vorzuwerfen haben und wehren sich gegen die vermeintliche Bedrohung, indem Sie Ihre Waffe ziehen. Ist dieses Verhalten zulässig?",["Nein, weil es sich nicht um einen widerrechtlichen Angriff handelt."]],
+["Ein Mann kehrt unverhofft früh nach Hause und trifft seine Frau mit einem anderen Mann im Bett. Völlig ausser sich zieht er die Pistole, die er auf sich trägt, und erschiesst den Mann. Ist dieses Verhalten des Schützen zulässig?",["Nein, da kein rechtswidriger Angriff auf den Schützen gegeben war."]],
+["Ein Mann sieht, wie ein Drogendealer einem stark Abhängigen Drogen verkauft. Angesichts der Tatsache, dass sein Sohn vor Jahren an einer Überdosis gestorben ist, kann sich der Mann nicht mehr halten und erschiesst den Dealer. Was sind die Folgen für den Schützen?",["Er wird voraussichtlich wegen vorsätzlicher Tötung belangt werden.","Er wird wegen verbotenem Waffentragen bestraft, sofern er keine gültige Tragbewilligung besitzt."]],
+["Liegt eine angemessene Notwehrhandlung vor, wenn das Opfer bei einem rechtswidrigen Angriff auf das eigene Leben den Täter erschiesst?",["Ja, wenn der Angriff nicht anders abzuwehren war."]],
+["Als Inhaber einer Waffentragbewilligung beobachten Sie aus unmittelbarer Nähe, wie ein ausgebrochener Stier auf eine Kinderschar zustürmt. Dürfen Sie den Stier erschiessen?",["Ja, wenn Sie sich vergewissert haben, dass Sie mit der Schussabgabe keine Menschen gefährden."]],
+["Beim Reinigen Ihrer Schusswaffe löst sich unbeabsichtigt ein Schuss, der einen zufällig vorbeispazierenden Nachbarn tötet. Auf Grund welchen Straftatbestandes werden Sie voraussichtlich belangt werden?",["Wegen fahrlässiger Tötung, weil Sie aus pflichtwidriger Unvorsichtigkeit einen Menschen getötet haben."]],
+["A, der seine Ehefrau verdächtigt fremdzugehen, bittet einen Kollegen, der eine Schusswaffe besitzt, die vermeintlich untreue Ehefrau zu erschiessen. Macht er sich strafbar, falls die Tat ausgeführt wird?",["Ja, er wird voraussichtlich als Anstifter nach der Strafandrohung, die auf den Täter Anwendung findet, bestraft werden."]],
+["Kann die Person, die einen Strafantrag eingereicht hat, diesen wieder zurückziehen?",["Ja"]],
+["Ein Sicherheitsagent im Dienst zeigt einem Freund seine Pistole in der Gaststätte. Während er auf die Toilette geht, manipuliert sein Freund weiter an der Waffe. Dabei löst sich ein Schuss und verletzt einen anwesenden Gast. Ist der Sicherheitsagent für das Vorgefallene mitverantwortlich?",["Ja, weil die Waffe nicht sicher aufbewahrt wurde.","Ja, weil durch seine pflichtwidrige Unvorsichtigkeit ein Mensch verletzt wurde."]],
+["Auf Ihrer nächtlichen Kontrollrunde beobachten Sie ein paar Jugendliche, welche dabei sind, eine Hausmauer zu besprayen. Um diese von ihrem Vorhaben abzubringen, ziehen Sie Ihre Waffe und geben einen Warnschuss ab. Ist diese Schussabgabe zulässig?",["Nein"]],
+["Durch ein zu bewachendes Privatgrundstück führt ein öffentlicher Fussweg, welcher mit einem allgemeinen Fahrverbot belegt ist. Immer wieder befahren Jugendliche mit ihren Motorfahrrädern diesen Weg. Als Ihnen erneut ein Motorradfahrer begegnet, ziehen Sie Ihre Waffe, um diesen aufzuhalten. Ist dieses Verhalten zulässig?",["Nein"]],
+["Während eines Sicherheitsdienstes in einem Nachtclub sind Sie draussen vor dem Eingang mit einer Schlägerei unter Discobesuchern konfrontiert. Um die Lage zu beruhigen, ziehen Sie Ihre Waffe und geben einen Warnschuss ab. Dürfen Sie das tun?",["Nein, der Einsatz einer Schusswaffe wegen Nachtruhestörung ist unzulässig und ein Warnschuss könnte unbeteiligte Dritte gefährden."]],
+["Welche dieser Behauptungen sind zutreffend?",["Das Notwehrrecht dauert so lange, wie der widerrechtliche Angriff dauert."]],
+["Was wird im eidgenössischen Zentralstrafregister insbesondere registriert?",["Verurteilungen wegen Verbrechen und Vergehen."]],
+["Wann ist der Straftatbestand der Urkundenfälschung insbesondere erfüllt?",["Wenn beim Kauf einer Waffe einem Waffenhändler ein unechter oder verfälschter Waffenerwerbsschein vorgewiesen wird."]],
+["Ein Hausbesitzer, der bereits viermal überfallen worden ist, installiert eine Selbstschussanlage in seinem Haus. Ist dieses Vorgehen zulässig?",["Nein, dieses Vorgehen ist unverhältnismässig."]],
+["Darf man zwecks Verteidigung seines Vermögens gegen Leib oder Leben eines unbeteiligten Dritten vorgehen?",["Nein, da Leib und Leben unbeteiligter Dritter Vermögenswerten grundsätzlich vorgehen."]],
+["Jemand entreisst Ihnen Ihre Aktentasche und rennt davon. Sie sind Inhaber einer Waffentragbewilligung, steigen in einen stehenden Wagen ein und zwingen den Lenker mit vorgehaltener Waffe, diese Person zu verfolgen. Ist ein solches Verhalten zulässig?",["Nein, unbeteiligte Dritte dürfen nicht genötigt werden, um Vermögenswerte zu erlangen."]],
+["Bei einem Personenschutzauftrag in der Nähe eines Bauernhofes steht Ihnen plötzlich der Hofhund gegenüber. Das Tier beachtet Sie aber nicht. Trotzdem provozieren Sie den Hund mit einem Stock, bis er Sie angreift. Um nicht gebissen zu werden, erschiessen Sie das Tier. Ist Ihr Handeln legitim?",["Nein, Sie werden voraussichtlich wegen Sachbeschädigung und evtl. Gefährdung Dritter belangt werden, da Sie den Angriff des Hundes selber verursacht haben."]],
+["Im Garten Ihres Auftraggebers, bei welchem Sie einen Personenschutzauftrag haben, stiehlt Nachbars Hund den Grillbraten vom Teller. Sind Sie berechtigt, auf das flüchtende Tier zu schiessen?",["Nein, diese Handlungsweise wäre unverhältnismässig (sog. Notstandsexzess) und Sie könnten wegen Sachbeschädigung belangt werden."]],
+["Die Mittel zur Verteidigung eines widerrechtlichen Angriffs im Falle von Notwehr sind:",["verhältnismässig zum widerrechtlichen Angriff."]],
+["Eine erkennbar unbewaffnete Person entwendet Ihr Portemonnaie und rennt damit davon. Sie ziehen Ihre Pistole und erschiessen diese. Ist dieses Verhalten zulässig?",["Nein, Sie werden voraussichtlich wegen einer Straftat gegen Leib und Leben belangt, da Sie Ihr Notwehrrecht überschritten haben."]],
+["Sie überraschen eine erkennbar unbewaffnete Person in Ihrem Haus. Was dürfen Sie als Träger einer Pistole tun?",["Die Person mit Ihrer Pistole in Schach halten, bis die Polizei eintrifft."]],
+["Auf Ihrer Nachtpatrouille, mit einer Pistole bewaffnet, stossen Sie auf eine Schlägerei. Sie versuchen die Streitparteien zu trennen. Ein körperlich überlegener Gegner traktiert Sie mit Faustschlägen und Fusstritten, obwohl Sie schon am Boden liegen. Wie dürfen Sie sich wehren?",["Ich darf meine Pistole ziehen und damit auf den Gegner einschlagen.","Ich darf meine Pistole ziehen, um dem Gegner zu zeigen, dass ich bewaffnet bin."]],
+["Als Sie eines Nachts nach Hause kommen, überraschen Sie zwei Personen, die gerade dabei sind, sich mit Ihrem Schmuck aus dem Staub zu machen. Als Sie die beiden auffordern, stehen zu bleiben, zieht eine Person eine Pistole. Was dürfen Sie als Träger einer Pistole tun?",["Sie dürfen den bewaffneten Einbrecher mit einem gezielten Schuss ausser Gefecht setzen.","Sie ziehen Ihre Waffe, da Sie annehmen müssen, dass es sich um eine Notwehrsituation handelt."]],
+["Sie beobachten, wie eine Gruppe Jugendlicher einen Mann, der bereits blutüberströmt am Boden liegt, mit Schlägen und Fusstritten traktiert. Was dürfen Sie als Träger einer Pistole tun?",["Ich ziehe meine Pistole und fordere die Jugendlichen auf, von dem verletzten Mann abzulassen."]],
+["Als Inhaber einer Waffentragbewilligung überraschen Sie beim Öffnen Ihres Geschäftes einen Mann, der mit Ihrer Geschäftskasse unter dem Arm flieht. Sie nehmen die Verfolgung auf. Als Sie diesem Mann nicht mehr folgen können, ziehen Sie Ihre Waffe und schiessen auf ihn, um an Ihre Kasse zu gelangen. Der Fliehende wird dabei schwer verletzt. Ist Ihr Verhalten zulässig?",["Nein, Sie werden voraussichtlich wegen eines Delikts gegen Leib und Leben belangt, weil Sie Ihr Notwehrrecht überschritten haben."]],
+["Ein Kunde behändigt in einem unaufmerksamen Moment des Verkäufers die Geschäftskasse und rennt damit davon. Der Verkäufer, ein Inhaber einer Waffentragbewilligung, steigt in ein anhaltendes Auto ein und zwingt den Lenker mit vorgehaltener Waffe, den Dieb zu verfolgen. Ist das Verhalten des Verkäufers zulässig?",["Nein, um an die Geschäftskasse zu gelangen, darf der Verkäufer nicht das Leben unbeteiligter Dritter gefährden."]],
+["Zwei Nachbarsfamilien liegen seit Jahren im Streit. Als Vater äussern Sie spasseshalber zu Ihrem 16-jährigen Sohn, der böse Nachbar hätte schon lange einmal eine Ladung Schrot verdient. Am nächsten Tag schiesst Ihr Sohn eine Ladung Gummischrot auf den Nachbarn ab, was schwere Körperverletzungen zur Folge hat. Wie ist dieser Sachverhalt zu qualifizieren?",["Der Vater wird voraussichtlich wegen unsorgfältigem Aufbewahren von Waffen und Munition belangt werden.","Der Vater wird voraussichtlich nicht belangt, da er seinen Sohn nicht vorsätzlich zur Tat angestiftet hat.","Der Sohn hat sich voraussichtlich wegen schwerer Körperverletzung zu verantworten, da er die Tat ausgeführt hat."]],
+["In einem Restaurant reizt A den bereits etwas unter Alkoholeinfluss stehenden B. Nach einem längeren Wortwechsel geht B mit einem Faustschlag zum Angriff über. A wehrt sich durch Gegenschläge, doch B gibt nicht auf. Darauf zieht A sein Messer hervor und versetzt B zwei gefährliche Stiche. Ist das Verhalten des A zulässig?",["Nein, A wird voraussichtlich wegen Körperverletzung belangt werden, da er den Angriff des B selber provoziert hat."]],
+["Mit einer Pistole bewaffnet haben Sie einen Personenschutzauftrag und begleiten Ihren Kunden auf einer Wanderung. Unterwegs sehen Sie einen anderen Wanderer, der von einem grossen Hund angegriffen und zu Boden gedrückt wird. Um den Wanderer zu retten, erschiessen Sie den Hund. Ist dies zulässig?",["Ja, es handelt sich um eine angemessene Notstandshandlung."]],
+["Anlässlich einer Fusspatrouille in Ihrem Sektor beobachten Sie, wie ein Mann einer älteren Frau beim Verlassen einer Bank die Handtasche entreisst und damit in Ihrer Richtung davonrennt. Was dürfen Sie als Pistolenträger tun?",["Da vom Täter keine Gefahr gegen Leib und Leben droht, muss eine verhältnismässige Massnahme ergriffen werden – ohne Schusswaffe."]],
+["Als Sicherheitsagent mit Waffentragbewilligung hören Sie während einer Fusspatrouille aus einem Haus heraus eindringliche Hilferufe einer Frau. Kurzentschlossen dringen Sie mit gezogener Pistole in das Haus, um der Hilfesuchenden beizustehen. Im Wohnzimmer treffen Sie auf Hausbewohner, welche gerade einen Fernsehkrimi anschauen. Ist Ihr Verhalten zulässig?",["Ja, wenn Sie berechtigterweise davon ausgehen konnten, dass eine Notwehrsituation gegeben war."]],
+["Sie tragen eine Waffe und bemerken, dass der Dachstock eines Hauses brennt und sich noch ein Kleinkind auf dem Balkon aufhält. Da die Haustür verschlossen ist, schiessen Sie mit der Waffe das Schloss auf, um das Kind zu retten. Ist dies zulässig?",["Ja, Sie handeln als Notstandshelfer und sind deshalb berechtigt, die Türe mit Ihrer Waffe zu beschädigen, wenn Sie sich vergewissert haben, dass Sie niemanden mit der Schussabgabe gefährden."]],
+["Wie lautet die Definition der Notwehr?",["Die Berechtigung, einen widerrechtlichen Angriff in einer den Umständen angemessenen Weise abzuwehren."]],
+["Wie entscheidet der Richter, wenn der Angegriffene die Grenzen der Notwehr überschreitet?",["Er mildert die Strafe nach freiem Ermessen oder entscheidet auf Straflosigkeit."]],
+["Wie lautet die Definition des rechtfertigenden Notstandes?",["Wer eine mit Strafe bedrohte Tat begeht, um ein eigenes oder ein Rechtsgut einer anderen Person aus einer unmittelbaren, nicht anders abwendbaren Gefahr zu retten, handelt rechtmässig, wenn er dadurch höherwertige Interessen wahrt."]],
+["Sie werden von einer Person, die Sie mit einem Messer bedroht, auf der Strasse verfolgt. Auf Ihrer Flucht verwenden Sie ein fremdes Fahrrad. Haben Sie einen Diebstahl begangen?",["Nein, denn Sie haben eine angemessene Notstandshandlung begangen."]],
+["Sie treffen zu Hause ein und überraschen eine Person, die gerade mit Ihrem Schmuck unter dem Arm aus Ihrem Haus tritt. Die Person flieht und als Sie ihr auf der Strasse nicht mehr folgen können, ziehen Sie Ihre Pistole (Sie verfügen über eine Waffentragbewilligung) und schiessen auf sie. Dürfen Sie das tun?",["Nein, die Schussabgabe ist unverhältnismässig. Sie haben Ihr Notwehrrecht überschritten."]],
+["Liegt eine angemessene Notwehrhandlung vor, wenn ein Eigentümer sein Eigentum vor einem unbewaffneten Dieb oder Sachbeschädiger dadurch verteidigt, dass er diesen erschiesst?",["Nein"]],
+["Kann man von Notwehr sprechen, wenn man auf angemessene Weise einen Angriff gegen Leib und Leben abwehrt, um sein eigenes Leben zu verteidigen?",["Ja, wenn man durch diese Person widerrechtlich angegriffen wird."]],
+["Ein Täter verlangt von Ihnen die Herausgabe Ihres Portemonnaies mit der Drohung, dass er Sie sonst zusammenschlage. Sie wehren den Täter mit dem Schlagstock ab und verletzen ihn schwer. Ist dieses Verhalten zulässig?",["Nein, die Handlungsweise ist unverhältnismässig. Es wird voraussichtlich eine Strafuntersuchung wegen vorsätzlicher Körperverletzung gegen Sie geführt werden."]],
+["Worin besteht der Hauptunterschied zwischen Pistolen und Revolvern?",["Pistolen haben in der Regel ein Magazin, Revolver haben immer eine Trommel."]],
+["Was versteht man unter dem Begriff «Double Action» Abzug?",["Spannabzug"]],
+["Welches Abzugssystem wird heute üblicherweise bei Revolvern verwendet?",["«Double Action» Abzug."]],
+["Bei welchen der nachgenannten Waffen handelt es sich um Kipplaufwaffen?",["Doppelbüchse","Drilling","Doppelflinte"]],
+["Welches sind die wesentlichen Waffenbestandteile einer Pistole?",["Das Griffstück.","Der Lauf.","Der Verschluss."]],
+["Was verstehen Sie üblicherweise unter dem Begriff «offene Visierung»?",["Der Sammelbegriff für Kimme und Korn."]],
+["Was bedeutet die Bezeichnung «DAO» bei Pistolen?",["Double Action only (nur Spannabzug)."]],
+["Welches sind die wesentlichen Waffenbestandteile eines Revolvers?",["Der Rahmen.","Die Trommel.","Der Lauf."]],
+["Welche der genannten Waffenarten gelten als verboten?",["Seriefeuerwaffen.","Halbautomatische Zentralfeuerwaffen, Faustfeuerwaffen, die mit einer Ladevorrichtung mit hoher Kapazität ausgerüstet sind.","Halbautomatische Zentralfeuerwaffen, Handfeuerwaffen, die mit einer Ladevorrichtung von mehr als 10 Patronen ausgerüstet sind.","Halbautomatische Handfeuerwaffen, die mithilfe eines Klapp- oder Teleskopschafts oder ohne Hilfsmittel auf eine Länge unter 60 cm gekürzt werden können, ohne dass dies einen Funktionsverlust zur Folge hat."]],
+["In welcher Masseinheit wird die V0 eines Geschosses gemessen?",["m/s","ft/s"]],
+["In welcher Masseinheit wird die Geschossenergie angegeben?",["ft/lbs","Joule"]],
+["Was bedeuten die Begriffe «Schadstoffarm», «Cleanfire», «Sintox», etc.?",["Munition, bei der ein Zündelement verwendet wird, welches keine Schwermetalle enthält. Ausserdem ist der Bleikern am Geschossheck abgedeckt."]],
+["Bei welchen der nachgenannten Patronen handelt es sich üblicherweise um Pistolenpatronen?",["9 mm Makarov","6,35 mm Browning","9 mm Police"]],
+["Bei welchen der nachgenannten Patronen handelt es sich üblicherweise um Revolverpatronen?",[".45 Colt",".38 Special",".454 Casull"]],
+["Was ist die ungefähre maximale Schussweite einer .22 Long Rifle Patrone?",["1'800 m"]],
+["Was ist die ungefähre maximale Schussweite von Revolver- und Pistolenpatronen?",["2'000 m"]],
+["Welches sind die Hauptbestandteile einer Kugelpatrone?",["Geschoss","Treibladung","Hülse","Zündelement"]],
+["Welche verschiedenen Zündungsarten finden bei den heutigen Patronen noch Verwendung?",["Zentralfeuerzündung","Randfeuerzündung"]],
+["Welches Pulver wird in den heutigen Kugelpatronen meistens verwendet?",["Nitrocellulosepulver (rauchschwaches Pulver)."]],
+["Was verstehen Sie unter dem Begriff «Markiermunition»?",["Munition, welche nur den Zündsatz und die Markierladung, jedoch kein Geschoss enthält."]],
+["Was ist ein Hartkerngeschoss?",["Ein Geschoss mit einem Kern aus einem harten Material (z.B. Stahl, Wolfram, etc.), konstruiert für eine hohe Durchschlagsleistung."]],
+["Kann eine .38 Special Patrone aus einem Revolver mit Kal. .357 Magnum verschossen werden?",["Ja"]],
+["Bei welchen der nachgenannten Bezeichnungen handelt es sich ebenfalls um die Patrone 9 mm Parabellum?",["9 mm Luger","Pist. Pat. 14","9x19"]],
+["Wie lauten die anderen Bezeichnungen für das Kaliber 9 mm Kurz?",["9 mm Browning",".380 Auto"]],
+["Was ist der Unterschied zwischen den Patronen Kaliber 7,65 Parabellum und .30 Luger?",["Es besteht kein Unterschied."]],
+["Der Geschosskern besteht in den meisten Fällen aus:",["Blei mit Antimon legiert.","Blei"]],
+["Was verstehen Sie unter Geschossablagerungen?",["Verbleiung, Tombak- oder Nickelrückstände im Lauf."]]
+];
+const W=[
+["Nein, Reizstoffsprays sind frei erhältlich und gelten nicht als Waffe.","Ja, er gilt als Waffe, kann aber ohne Waffenerwerbsschein im Handel gekauft werden."],
+["Nein, verbotene Munition darf nicht mehr verschossen werden.","Nur mit einer kantonalen Ausnahmebewilligung."],
+["Die Einfuhr ist bewilligungsfrei, da Gasschusswaffen keine Waffen sind.","Ein Waffenerwerbsschein genügt, eine Zollanmeldung ist nicht nötig."],
+["Kaufpreis der Waffe.","Name des Waffenhändlers, bei dem die Waffe ursprünglich gekauft wurde."],
+["Mindestens 2 Jahre.","Mindestens 5 Jahre.","Es besteht keine Aufbewahrungspflicht."],
+["Beliebig viele.","Höchstens 1.","Die bewilligte Anzahl, höchstens 5."],
+["Nein, die Einfuhr ist in jedem Fall verboten.","Ja, bewilligungsfrei, da Dolche keine Waffen sind.","Ja, ein Waffenerwerbsschein genügt."],
+["Nein, nur mit Einfuhrgenehmigung der Zentralstelle Waffen.","Nein, die Einfuhr ist verboten."],
+["Nein, das Tragen ist generell verboten.","Ja, ohne Einschränkung, da es geerbt wurde.","Nur mit einer Waffentragbewilligung."],
+["Ja, ohne Einschränkung, da Messer unter 12 cm nie als Waffe gelten.","Nein, nur mit einer Waffentragbewilligung."],
+["Ja","Nein, aber er braucht eine kantonale Ausnahmebewilligung."],
+["Nein, der Erwerb ist bewilligungsfrei.","Ja, ein Waffenerwerbsschein genügt."],
+["Nein","Nein, ein schriftlicher Vertrag genügt."],
+["Ja, in jedem Fall.","Nein, Sportwaffen sind generell von der Anmeldung ausgenommen."],
+["Nein, das ist in keinem Fall möglich.","Ja, mit einem Waffenerwerbsschein."],
+["Ja, ohne Bewilligung, da es nur eine Gasschusswaffe ist.","Nein, das Tragen ist in jedem Fall verboten."],
+["Jederzeit und überall, da es keine Feuerwaffen sind.","Nur mit einer Waffentragbewilligung."],
+["Nein, in keinem Fall.","Ja, mit einem Waffenerwerbsschein."],
+["Ja, ohne Einschränkung.","Nur mit einer Waffentragbewilligung."],
+["Feuerwaffen, die vor 1900 hergestellt wurden.","Alle Waffen, die älter als 50 Jahre sind."],
+["Nein, die Einfuhr ist in jedem Fall verboten.","Ja, mit einem Waffenerwerbsschein.","Ja, bewilligungsfrei."],
+["Ja, bewilligungsfrei, da es ein Spazierstock ist.","Ja, mit einem Waffenerwerbsschein."],
+["Ja, bewilligungsfrei, da es keine Waffe ist.","Nein, die Einfuhr ist in jedem Fall verboten."],
+["Ja, als Erbe ohne weitere Bewilligung.","Nein, das Tragen ist in jedem Fall verboten."],
+["Zielfernrohre ohne Nachtsichtfunktion.","Holster und Waffentaschen.","Reinigungsgeräte für den Lauf."],
+["Vollendung des 21. Altersjahres.","Nachweis eines absolvierten Schiesstrainings.","Schweizer Staatsbürgerschaft."],
+["Ich muss die Waffe vorher bei der Polizei vorführen.","Der Käufer muss eine Waffentragbewilligung vorweisen.","Ein mündlicher Vertrag genügt."],
+["Die Waffe muss im Zeughaus hinterlegt werden.","Es gelten keine besonderen Vorschriften."],
+["Für 1 Jahr","Für 10 Jahre","Unbefristet"],
+["Die Waffe darf geladen mitgeführt werden, solange sie gesichert ist.","Sie dürfen auf dem Weg beliebige Zwischenhalte einlegen."],
+["Die Waffe muss geladen und gesichert sein.","Waffe und Munition müssen im gleichen Behälter sein."],
+["Ja, da er vor 1999 erworben wurde (Besitzstand).","Ja, ohne Einschränkung."],
+["Ich muss vom Erwerber eine kantonale Ausnahmebewilligung verlangen.","Ein Waffenerwerbsschein ist nicht nötig, ein schriftlicher Vertrag genügt."],
+["Ein Waffenerwerbsschein genügt.","Ein schriftlicher Vertrag genügt."],
+["Ja","Ja, aber nur mit einer Waffentragbewilligung."],
+["Ich darf auf den Täter schiessen, um den Diebstahl zu verhindern.","Ich darf den Täter verletzen, auch wenn er bereits flieht."],
+["Sie dürfen die Waffe ziehen und auf die Gruppe richten.","Sie dürfen einen Warnschuss abgeben."],
+["Ja, weil ich mich bedroht fühle.","Ja, weil ich unschuldig bin."],
+["Ja, es handelt sich um Notwehr.","Ja, weil er in einem entschuldbaren Affekt gehandelt hat."],
+["Er bleibt straflos, da er einen Drogenhandel verhindert hat.","Er handelte in Notwehrhilfe zugunsten des Abhängigen."],
+["Nein, das Töten ist nie Notwehr.","Ja, in jedem Fall, auch wenn mildere Mittel möglich gewesen wären."],
+["Nein, Tiere dürfen nie erschossen werden.","Ja, ohne weitere Abklärung."],
+["Wegen vorsätzlicher Tötung.","Gar nicht, da es ein Unfall war.","Wegen Mordes."],
+["Nein, da er die Tat nicht selbst ausgeführt hat.","Ja, aber nur mit einer Busse."],
+["Nein, ein Strafantrag ist endgültig.","Nur mit Zustimmung der beschuldigten Person."],
+["Nein, nur der Freund ist verantwortlich.","Nein, da er im Moment des Schusses nicht anwesend war."],
+["Ja, zum Schutz des Eigentums.","Ja, wenn der Schuss in die Luft abgegeben wird."],
+["Ja, um das Fahrverbot durchzusetzen.","Ja, wenn der Fahrer nicht anhält."],
+["Ja, ein Warnschuss ist zur Deeskalation erlaubt.","Ja, wenn er in die Luft abgegeben wird."],
+["Das Notwehrrecht dauert, bis der Täter gefasst ist.","Das Notwehrrecht gilt auch nachträglich als Vergeltung."],
+["Alle Bussen wegen Übertretungen.","Polizeiliche Anzeigen ohne Verurteilung."],
+["Wenn man seinen Waffenerwerbsschein verliert.","Wenn man beim Kauf mündlich ein falsches Alter nennt."],
+["Ja, da er bereits mehrmals überfallen wurde.","Ja, wenn ein Warnschild angebracht ist."],
+["Ja, wenn das Vermögen sehr wertvoll ist.","Ja, zur Verteidigung ist jedes Mittel erlaubt."],
+["Ja, da Sie Ihr Eigentum zurückholen dürfen.","Ja, weil Sie eine Waffentragbewilligung besitzen."],
+["Ja, es handelt sich um Notwehr.","Ja, es ist eine rechtfertigende Notstandshandlung."],
+["Ja, zum Schutz des Eigentums des Auftraggebers.","Ja, wenn dabei niemand gefährdet wird."],
+["beliebig, solange der Angriff abgewehrt wird.","immer stärker als der Angriff, um sicherzugehen."],
+["Ja, es handelt sich um Notwehr zum Schutz des Eigentums.","Ja, wenn vorher ein Warnruf erfolgte."],
+["Die Person ohne Vorwarnung erschiessen.","Einen Warnschuss abgeben und ihr nachschiessen, wenn sie flieht."],
+["Ich darf sofort ohne Vorwarnung gezielt auf den Gegner schiessen.","Ich darf mich nicht wehren, da ich mich freiwillig in die Schlägerei begeben habe."],
+["Sie dürfen auch den unbewaffneten zweiten Einbrecher erschiessen.","Sie dürfen nichts unternehmen und müssen die Polizei abwarten."],
+["Ich schiesse sofort gezielt auf die Jugendlichen.","Ich darf nicht eingreifen, da ich nicht selbst angegriffen werde."],
+["Ja, um mein Eigentum zurückzuerlangen.","Ja, weil ich eine Waffentragbewilligung habe."],
+["Ja, es ist Notwehr zum Schutz des Eigentums.","Ja, sofern der Lenker nicht verletzt wird."],
+["Der Vater wird als Anstifter zur schweren Körperverletzung bestraft.","Der Sohn bleibt straflos, da er minderjährig ist."],
+["Ja, A handelte in Notwehr.","Ja, weil B zuerst zugeschlagen hat."],
+["Nein, das ist Sachbeschädigung.","Nein, Sie dürfen nur Ihren eigenen Kunden schützen."],
+["Ich darf auf den Täter schiessen, um die Handtasche zurückzuerlangen.","Ich darf einen Warnschuss abgeben."],
+["Nein, das Betreten eines Hauses mit gezogener Waffe ist immer verboten.","Ja, in jedem Fall, da Sie Sicherheitsagent sind."],
+["Nein, das ist Sachbeschädigung.","Ja, auch ohne sich zu vergewissern, dass niemand gefährdet wird."],
+["Die Berechtigung, einen Angreifer nachträglich zu bestrafen.","Die Berechtigung, jedes beliebige Mittel gegen einen Angriff einzusetzen."],
+["Er verurteilt immer zur vollen Strafe.","Er erhöht die Strafe, weil eine Waffe im Spiel war."],
+["Wer einen widerrechtlichen Angriff in angemessener Weise abwehrt, handelt rechtmässig.","Wer eine Straftat begeht, um sein Vermögen zu schützen, handelt immer rechtmässig."],
+["Ja, die Benutzung fremden Eigentums ist immer Diebstahl.","Ja, aber die Strafe wird gemildert."],
+["Ja, um mein Eigentum zurückzuholen.","Ja, wenn ich vorher gewarnt habe."],
+["Ja","Ja, wenn der Dieb trotz Aufforderung nicht stehen bleibt."],
+["Nein, Notwehr gilt nur zum Schutz Dritter.","Ja, auch wenn der Angriff rechtmässig ist (z. B. eine Verhaftung durch die Polizei)."],
+["Ja, es ist Notwehr.","Ja, da ein Schlagstock keine Schusswaffe ist."],
+["Revolver haben ein Magazin, Pistolen eine Trommel.","Pistolen haben immer ein grösseres Kaliber."],
+["Single-Action-Abzug","Doppelschuss-Abzug","Stecherabzug"],
+["«Single Action» Abzug.","Stecherabzug."],
+["Pump-Action-Flinte","Unterhebelrepetierer","Selbstladebüchse"],
+["Das Magazin.","Die Visierung."],
+["Zielfernrohr","Leuchtpunktvisier"],
+["Double Automatic Operation.","Direct Action Only (nur Kurzabzug)."],
+["Der Abzug.","Der Hahn."],
+["Einzelladerwaffen.","Repetiergewehre mit Kammerverschluss."],
+["Joule","bar"],
+["m/s","Gramm"],
+["Munition mit reduzierter Treibladung für Übungszwecke.","Leuchtspurmunition."],
+[".30-06 Springfield","7,5 mm GP 11"],
+["9 mm Parabellum",".223 Remington"],
+["200 m","500 m","5'000 m"],
+["300 m","600 m","5'000 m"],
+["Magazin","Abzug"],
+["Stiftfeuerzündung","Luntenzündung"],
+["Schwarzpulver","Blitzpulver"],
+["Munition mit Leuchtspur zur Markierung der Flugbahn.","Munition mit farbiger Hülse zur Kennzeichnung des Kalibers."],
+["Ein Geschoss, das sich beim Aufprall verformt (Deformationsgeschoss).","Ein Geschoss aus reinem Blei ohne Mantel."],
+["Nein","Nur mit einem Adapter."],
+["9 mm Kurz",".380 Auto","9 mm Makarov"],
+["9 mm Luger","9x19",".38 Special"],
+["Die .30 Luger hat ein grösseres Kaliber.","Die 7,65 Parabellum ist eine Revolverpatrone."],
+["Stahl","Kupfer"],
+["Pulverrückstände im Patronenlager.","Rost im Lauf."]
+];
+const TOPICS=[["all","Alle",()=>true],["recht","Waffenrecht",n=>n<=35],["notwehr","Notwehr & Strafrecht",n=>n>=36&&n<=79],["technik","Technik & Munition",n=>n>=80],["wrong","Nicht gewusst",n=>S.r[n]==="n"],["open","Noch offen",n=>!S.r[n]]];
+const topicName=n=>n<=35?"Waffenrecht":n<=79?"Notwehr & Strafrecht":"Technik & Munition";
+const KEY="wt-trainer-v1";
+let S={r:{},mode:"cards",topic:"all",shuffle:false};
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s)S={...S,...s}}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+let deck=[],pos=0,flipped=false;
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+function buildDeck(){
+  const f=TOPICS.find(t=>t[0]===S.topic)[2];
+  deck=D.map((_,i)=>i+1).filter(f);
+  if(S.shuffle){for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}}
+  pos=0;Q=null;
+}
+function ansHTML(n){
+  const a=D[n-1][1],L="abcde";
+  return `<ul>${a.map((x,i)=>`<li><b>${a.length>1?L[i]+")":"→"}</b><span>${esc(x)}</span></li>`).join("")}</ul>`;
+}
+function status(n){const r=S.r[n];return r==="k"?'<span class="st k">gewusst</span>':r==="n"?'<span class="st n">nicht gewusst</span>':""}
+function renderBar(){
+  $("m-cards").setAttribute("aria-pressed",S.mode==="cards");
+  $("m-list").setAttribute("aria-pressed",S.mode==="list");
+  $("shuffle").setAttribute("aria-pressed",S.shuffle);
+  document.querySelectorAll("#filters .chip").forEach(b=>b.setAttribute("aria-pressed",b.dataset.t===S.topic));
+  const k=Object.values(S.r).filter(v=>v==="k").length,n=Object.values(S.r).filter(v=>v==="n").length;
+  $("pk").style.width=(k/D.length*100)+"%";$("pn").style.width=(n/D.length*100)+"%";
+  $("ptxt").textContent=`${k}/${D.length} gewusst`;
+  $("restxt").textContent=`${n} nicht gewusst · ${D.length-k-n} offen`;
+}
+function render(){
+  renderBar();
+  const v=$("view");
+  if(!deck.length){v.innerHTML=`<p class="empty">${S.topic==="wrong"?"Keine Fragen als «nicht gewusst» markiert.":"Alles erledigt in dieser Auswahl."}</p>`;return}
+  if(S.mode==="list"){
+    v.innerHTML=`<div class="list">${deck.map(n=>`<article class="item"><div class="meta"><span>Frage ${n}</span><span class="tag">${topicName(n)}</span></div><p class="q">${esc(D[n-1][0])}</p><div class="ans">${ansHTML(n)}</div></article>`).join("")}</div>`;
+    return;
+  }
+  if(pos>=deck.length)pos=deck.length-1;
+  const n=deck[pos];
+  if(!Q||Q.n!==n)newQ(n);
+  const L="ABCDEFGH";
+  const right=Q.checked?isRight():null;
+  v.innerHTML=`<div style="display:flex;flex-direction:column;gap:12px">
+   <div class="card">
+    <div class="meta"><span>Frage ${n} · ${pos+1}/${deck.length}</span><span>${status(n)} <span class="tag">${topicName(n)}</span></span></div>
+    <p class="q">${esc(D[n-1][0])}</p>
+    <p class="hint" style="margin:0">Klicke alle richtigen Antworten an. Ein falscher Klick zählt als nicht gewusst.</p>
+    <div class="opts">${Q.opts.map((o,i)=>{
+      const on=Q.sel.has(i);let cls="opt"+(on?" on":"");let note="";
+      if(!Q.checked&&on&&o.ok){cls+=" good";note="richtig"}
+      if(Q.checked){if(o.ok&&on){cls+=" good";note="richtig"}else if(o.ok){cls+=" miss";note="fehlt"}else if(on){cls+=" wrongsel";note="falsch"}else cls+=" dim"}
+      return `<button class="${cls}" data-i="${i}" ${Q.checked?"disabled":""} aria-pressed="${on}"><span class="box">${on?"✓":L[i]}</span><span class="ot">${esc(o.t)}</span>${note?`<span class="note">${note}</span>`:""}</button>`}).join("")}</div>
+    ${Q.checked?`<p class="verdict ${right?"k":"n"}">${right?"Richtig! Nächste Frage kommt gleich.":"Falsch. Die Frage ist als «nicht gewusst» markiert. Grün sind die richtigen Antworten."}</p>`:""}
+   </div>
+   <div class="actions">
+    <button class="btn nav" id="prev" ${pos===0?"disabled":""} aria-label="Zurück">←</button>
+    ${Q.checked?`<button class="btn yes" id="next2" style="grid-column:span 2">${pos>=deck.length-1&&!dyn()?"Fertig":"Nächste Frage"}</button>`
+      :`<p class="hint" id="check" style="grid-column:span 2;margin:auto;text-align:center">${Q.opts.filter((o,i)=>o.ok&&!Q.sel.has(i)).length===Q.opts.filter(o=>o.ok).length?"Wähle eine Antwort":"Weiter auswählen, bis alle richtigen markiert sind"}</p>`}
+    <button class="btn nav" id="next" ${pos>=deck.length-1?"disabled":""} aria-label="Überspringen">→</button>
+   </div>
+   <div class="keys">A–E = auswählen · Enter = weiter · ←/→ = blättern</div></div>`;
+  v.querySelectorAll(".opt").forEach(b=>b.onclick=()=>toggle(+b.dataset.i));
+  $("prev").onclick=()=>go(-1);$("next").onclick=()=>go(1);
+  if($("check"))$("check").onclick=check;
+  if($("next2"))$("next2").onclick=advance;
+}
+let Q=null;
+const dyn=()=>S.topic==="wrong"||S.topic==="open";
+function newQ(n){
+  const opts=[...D[n-1][1].map(t=>({t,ok:true})),...(W[n-1]||[]).map(t=>({t,ok:false}))];
+  for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]]}
+  Q={n,opts,sel:new Set(),checked:false};
+}
+function toggle(i){
+  if(!Q||Q.checked||i>=Q.opts.length||Q.sel.has(i))return;
+  Q.sel.add(i);
+  if(!Q.opts[i].ok){Q.checked=true;S.r[Q.n]="n";save();render();return}
+  if(Q.opts.every((o,j)=>!o.ok||Q.sel.has(j))){Q.checked=true;S.r[Q.n]="k";save();render();
+    const n=Q.n;Q.timer=setTimeout(()=>{if(Q&&Q.n===n)advance()},1200);return}
+  render();
+}
+function isRight(){return Q.opts.every((o,i)=>o.ok===Q.sel.has(i))}
+function check(){}
+function go(d){if(Q)clearTimeout(Q.timer);const p=pos+d;if(p<0||p>=deck.length)return;pos=p;Q=null;render()}
+function advance(){
+  if(!Q)return;clearTimeout(Q.timer);const n=Q.n;
+  if(dyn()&&!(TOPICS.find(t=>t[0]===S.topic)[2](n))){deck.splice(pos,1)}else if(pos<deck.length-1)pos++;
+  else{$("view").innerHTML=`<p class="empty">Durchgang beendet. Wähle «Nicht gewusst», um deine Fehler zu wiederholen.</p>`;Q=null;renderBar();return}
+  Q=null;render();
+}
+TOPICS.forEach(([id,name])=>{const b=document.createElement("button");b.className="chip";b.dataset.t=id;b.id="t-"+id;b.textContent=name;b.onclick=()=>{S.topic=id;save();buildDeck();render()};$("filters").appendChild(b)});
+$("m-cards").onclick=()=>{S.mode="cards";save();render()};
+$("m-list").onclick=()=>{S.mode="list";save();render()};
+$("shuffle").onclick=()=>{S.shuffle=!S.shuffle;save();buildDeck();render()};
+let armed=false;
+$("reset").onclick=e=>{if(!armed){armed=true;e.target.textContent="Wirklich zurücksetzen?";setTimeout(()=>{armed=false;e.target.textContent="Fortschritt zurücksetzen"},3000);return}
+  S.r={};save();armed=false;e.target.textContent="Fortschritt zurücksetzen";buildDeck();render()};
+document.addEventListener("keydown",e=>{
+  if(S.mode!=="cards"||!deck.length||!Q)return;
+  const k=e.key.toLowerCase(),L="abcdefgh";
+  if(L.includes(k)&&k.length===1){toggle(L.indexOf(k))}
+  else if(e.key==="Enter"&&Q.checked){e.preventDefault();advance()}
+  else if(e.key==="ArrowLeft")go(-1);else if(e.key==="ArrowRight")go(1);
+});
+buildDeck();render();
+</script>
+</body></html>
