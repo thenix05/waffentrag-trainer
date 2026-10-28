@@ -341,7 +341,7 @@ function buildDeck(){
   deck=D.map((_,i)=>i+1).filter(f);
   if(S.topic==="ever"&&!S.shuffle)deck.sort((a,b)=>(S.e[b]||0)-(S.e[a]||0)||a-b);
   if(S.shuffle){for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}}
-  pos=0;Q=null;
+  pos=0;Q=null;QS={};
 }
 function ansHTML(n){
   const a=D[n-1][1],L="abcde";
@@ -395,12 +395,13 @@ function render(){
   if($("check"))$("check").onclick=check;
   if($("next2"))$("next2").onclick=advance;
 }
-let Q=null;
+let Q=null,QS={};
 const dyn=()=>S.topic==="wrong"||S.topic==="open";
 function newQ(n){
+  if(QS[n]){Q=QS[n];return}
   const opts=[...D[n-1][1].map(t=>({t,ok:true})),...(W[n-1]||[]).map(t=>({t,ok:false}))];
   for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]]}
-  Q={n,opts,sel:new Set(),checked:false};
+  Q=QS[n]={n,opts,sel:new Set(),checked:false};
 }
 function toggle(i){
   if(!Q||Q.checked||i>=Q.opts.length||Q.sel.has(i))return;
