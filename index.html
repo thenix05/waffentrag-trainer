@@ -325,11 +325,12 @@ const W=[
 ["Stahl","Kupfer"],
 ["Pulverrückstände im Patronenlager.","Rost im Lauf."]
 ];
-const TOPICS=[["all","Alle",()=>true],["recht","Waffenrecht",n=>n<=35],["notwehr","Notwehr & Strafrecht",n=>n>=36&&n<=79],["technik","Technik & Munition",n=>n>=80],["wrong","Nicht gewusst",n=>S.r[n]==="n"],["open","Noch offen",n=>!S.r[n]]];
+const TOPICS=[["all","Alle",()=>true],["recht","Waffenrecht",n=>n<=35],["notwehr","Notwehr & Strafrecht",n=>n>=36&&n<=79],["technik","Technik & Munition",n=>n>=80],["wrong","Zuletzt falsch",n=>S.r[n]==="n"],["ever","Schon mal falsch",n=>(S.e[n]||0)>0],["open","Noch offen",n=>!S.r[n]]];
 const topicName=n=>n<=35?"Waffenrecht":n<=79?"Notwehr & Strafrecht":"Technik & Munition";
 const KEY="wt-trainer-v1";
-let S={r:{},mode:"cards",topic:"all",shuffle:false};
+let S={r:{},e:{},mode:"cards",topic:"all",shuffle:false};
 try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s)S={...S,...s}}catch(e){}
+if(!S.e)S.e={};
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 let deck=[],pos=0,flipped=false;
 const $=id=>document.getElementById(id);
@@ -338,6 +339,7 @@ const esc=s=>s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 function buildDeck(){
   const f=TOPICS.find(t=>t[0]===S.topic)[2];
   deck=D.map((_,i)=>i+1).filter(f);
+  if(S.topic==="ever"&&!S.shuffle)deck.sort((a,b)=>(S.e[b]||0)-(S.e[a]||0)||a-b);
   if(S.shuffle){for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]]}}
   pos=0;Q=null;
 }
@@ -345,7 +347,7 @@ function ansHTML(n){
   const a=D[n-1][1],L="abcde";
   return `<ul>${a.map((x,i)=>`<li><b>${a.length>1?L[i]+")":"→"}</b><span>${esc(x)}</span></li>`).join("")}</ul>`;
 }
-function status(n){const r=S.r[n];return r==="k"?'<span class="st k">gewusst</span>':r==="n"?'<span class="st n">nicht gewusst</span>':""}
+function status(n){const r=S.r[n],c=S.e[n]||0;return (c?`<span class="st n">${c}× falsch</span> `:"")+(r==="k"?'<span class="st k">gewusst</span>':r==="n"?'<span class="st n">zuletzt falsch</span>':"")}
 function renderBar(){
   $("m-cards").setAttribute("aria-pressed",S.mode==="cards");
   $("m-list").setAttribute("aria-pressed",S.mode==="list");
@@ -354,12 +356,12 @@ function renderBar(){
   const k=Object.values(S.r).filter(v=>v==="k").length,n=Object.values(S.r).filter(v=>v==="n").length;
   $("pk").style.width=(k/D.length*100)+"%";$("pn").style.width=(n/D.length*100)+"%";
   $("ptxt").textContent=`${k}/${D.length} gewusst`;
-  $("restxt").textContent=`${n} nicht gewusst · ${D.length-k-n} offen`;
+  $("restxt").textContent=`${n} zuletzt falsch · ${Object.keys(S.e).filter(x=>S.e[x]>0).length} schon mal falsch · ${D.length-k-n} offen`;
 }
 function render(){
   renderBar();
   const v=$("view");
-  if(!deck.length){v.innerHTML=`<p class="empty">${S.topic==="wrong"?"Keine Fragen als «nicht gewusst» markiert.":"Alles erledigt in dieser Auswahl."}</p>`;return}
+  if(!deck.length){v.innerHTML=`<p class="empty">${S.topic==="wrong"||S.topic==="ever"?"Hier ist noch keine Frage. Mach zuerst einen Durchgang, falsche Antworten landen dann hier.":"Alles erledigt in dieser Auswahl."}</p>`;return}
   if(S.mode==="list"){
     v.innerHTML=`<div class="list">${deck.map(n=>`<article class="item"><div class="meta"><span>Frage ${n}</span><span class="tag">${topicName(n)}</span></div><p class="q">${esc(D[n-1][0])}</p><div class="ans">${ansHTML(n)}</div></article>`).join("")}</div>`;
     return;
@@ -403,7 +405,7 @@ function newQ(n){
 function toggle(i){
   if(!Q||Q.checked||i>=Q.opts.length||Q.sel.has(i))return;
   Q.sel.add(i);
-  if(!Q.opts[i].ok){Q.checked=true;S.r[Q.n]="n";save();render();return}
+  if(!Q.opts[i].ok){Q.checked=true;S.r[Q.n]="n";S.e[Q.n]=(S.e[Q.n]||0)+1;save();render();return}
   if(Q.opts.every((o,j)=>!o.ok||Q.sel.has(j))){Q.checked=true;S.r[Q.n]="k";save();render();
     const n=Q.n;Q.timer=setTimeout(()=>{if(Q&&Q.n===n)advance()},1200);return}
   render();
@@ -414,7 +416,7 @@ function go(d){if(Q)clearTimeout(Q.timer);const p=pos+d;if(p<0||p>=deck.length)r
 function advance(){
   if(!Q)return;clearTimeout(Q.timer);const n=Q.n;
   if(dyn()&&!(TOPICS.find(t=>t[0]===S.topic)[2](n))){deck.splice(pos,1)}else if(pos<deck.length-1)pos++;
-  else{$("view").innerHTML=`<p class="empty">Durchgang beendet. Wähle «Nicht gewusst», um deine Fehler zu wiederholen.</p>`;Q=null;renderBar();return}
+  else{$("view").innerHTML=`<p class="empty">Durchgang beendet. Wähle «Zuletzt falsch» oder «Schon mal falsch», um deine Fehler zu wiederholen.</p>`;Q=null;renderBar();return}
   Q=null;render();
 }
 TOPICS.forEach(([id,name])=>{const b=document.createElement("button");b.className="chip";b.dataset.t=id;b.id="t-"+id;b.textContent=name;b.onclick=()=>{S.topic=id;save();buildDeck();render()};$("filters").appendChild(b)});
@@ -423,7 +425,7 @@ $("m-list").onclick=()=>{S.mode="list";save();render()};
 $("shuffle").onclick=()=>{S.shuffle=!S.shuffle;save();buildDeck();render()};
 let armed=false;
 $("reset").onclick=e=>{if(!armed){armed=true;e.target.textContent="Wirklich zurücksetzen?";setTimeout(()=>{armed=false;e.target.textContent="Fortschritt zurücksetzen"},3000);return}
-  S.r={};save();armed=false;e.target.textContent="Fortschritt zurücksetzen";buildDeck();render()};
+  S.r={};S.e={};save();armed=false;e.target.textContent="Fortschritt zurücksetzen";buildDeck();render()};
 document.addEventListener("keydown",e=>{
   if(S.mode!=="cards"||!deck.length||!Q)return;
   const k=e.key.toLowerCase(),L="abcdefgh";
