@@ -77,6 +77,33 @@ button{font:inherit;cursor:pointer}
 .foot{border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:13px;line-height:1.5}
 .foot p{margin:0;max-width:65ch}
 .foot a{color:inherit}
+.exam{display:flex;flex-direction:column;gap:14px}
+.ehead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.ehead .prog{flex:1;min-width:180px}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.tab{flex:0 0 auto;font-family:var(--display);font-size:13px;font-weight:500;padding:7px 10px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--muted);position:relative;font-variant-numeric:tabular-nums}
+.tab.ans{color:var(--ink);border-color:var(--muted)}
+.tab.cur{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.tab.pin::after{content:"";position:absolute;top:-4px;right:-4px;width:9px;height:9px;border-radius:50%;background:var(--accent)}
+.tab.ok{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+.tab.bad{background:var(--accent-soft);color:var(--bad);border-color:var(--bad)}
+.tab.cur.ok,.tab.cur.bad{outline:2px solid var(--ink);outline-offset:1px}
+.epanel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.etop{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--display)}
+.etop b{font-size:16px}
+.etop .pts{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.pinb{background:none;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-family:var(--display);font-size:12px;color:var(--muted);margin-left:8px}
+.pinb[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+.egrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:20px;align-items:start}
+.egrid .q{font-weight:400;font-size:17px}
+.enav{display:flex;justify-content:space-between;gap:8px}
+.score{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between}
+.score .big{font-family:var(--display);font-weight:800;font-size:40px;line-height:1;font-variant-numeric:tabular-nums}
+.score .big small{font-size:18px;color:var(--muted);font-weight:500}
+.start{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:22px;display:flex;flex-direction:column;gap:14px}
+.start h2{font-family:var(--display);font-size:22px;margin:0}
+.start p{margin:0;color:var(--muted);max-width:60ch}
+@media (max-width:640px){.egrid{grid-template-columns:1fr}}
 @media (max-width:520px){.actions{grid-template-columns:1fr 1fr}.actions .nav{order:2}.actions #check,.actions #next2{grid-column:1/-1!important}.keys{display:none}}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.opt:not(:disabled):hover{border-color:var(--muted)}}
 </style>
@@ -85,12 +112,13 @@ button{font:inherit;cursor:pointer}
 <div class="wrap">
   <header>
     <h1>Prüfung <span>Waffentragen</span></h1>
-    <p>Alle 106 Fragen des fedpol-Fragenkatalogs (Stand 02.10.2019). Klicke alle richtigen Antworten an; richtig wird automatisch gezählt, ein Fehlklick als nicht gewusst. Die falschen Vorschläge sind ergänzt, die richtigen stammen aus dem Katalog.</p>
+    <p>Alle 106 Fragen des fedpol-Fragenkatalogs (Stand 02.10.2019). Quiz: sofortiges Feedback pro Frage. Prüfung: alles ankreuzen, am Schluss einreichen. Die falschen Vorschläge sind ergänzt, die richtigen stammen aus dem Katalog.</p>
   </header>
 
   <section class="bar" aria-label="Einstellungen">
     <div class="row"><span class="lbl">Modus</span>
       <button class="chip" data-mode="cards" id="m-cards">Quiz</button>
+      <button class="chip" data-mode="exam" id="m-exam">Prüfung</button>
       <button class="chip" data-mode="list" id="m-list">Liste lesen</button>
       <button class="chip" id="shuffle" aria-pressed="false">Mischen</button>
     </div>
@@ -351,6 +379,7 @@ function status(n){const r=S.r[n],c=S.e[n]||0;return (c?`<span class="st n">${c}
 function renderBar(){
   $("m-cards").setAttribute("aria-pressed",S.mode==="cards");
   $("m-list").setAttribute("aria-pressed",S.mode==="list");
+  $("m-exam").setAttribute("aria-pressed",S.mode==="exam");
   $("shuffle").setAttribute("aria-pressed",S.shuffle);
   document.querySelectorAll("#filters .chip").forEach(b=>b.setAttribute("aria-pressed",b.dataset.t===S.topic));
   const k=Object.values(S.r).filter(v=>v==="k").length,n=Object.values(S.r).filter(v=>v==="n").length;
@@ -371,6 +400,7 @@ function render(){
   renderBar();
   const v=$("view");
   if(!deck.length){v.innerHTML=`<p class="empty">${S.topic==="wrong"||S.topic==="ever"?"Hier ist noch keine Frage. Mach zuerst einen Durchgang, falsche Antworten landen dann hier.":"Alles erledigt in dieser Auswahl."}</p>`;return}
+  if(S.mode==="exam"){renderExam();return}
   if(S.mode==="list"){
     v.innerHTML=`<div class="list">${deck.map(n=>`<article class="item"><div class="meta"><span>Frage ${n}</span><span class="tag">${topicName(n)}</span></div><p class="q">${esc(D[n-1][0])}</p><div class="ans">${ansHTML(n)}</div></article>`).join("")}</div>`;
     return;
@@ -429,14 +459,75 @@ function advance(){
   else{$("view").innerHTML=`<p class="empty">Durchgang beendet. Wähle «Zuletzt falsch» oder «Schon mal falsch», um deine Fehler zu wiederholen.</p>`;Q=null;renderBar();return}
   Q=null;render();
 }
+
+/* ---------- Prüfungsmodus ---------- */
+const EKEY="wt-exam-v1";
+let X=null;try{X=JSON.parse(localStorage.getItem(EKEY)||"null")}catch(e){}
+const saveX=()=>{try{localStorage.setItem(EKEY,JSON.stringify(X))}catch(e){}};
+let confirmSubmit=false;
+function startExam(size){
+  let pool=deck.slice();
+  for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
+  pool=pool.slice(0,size);
+  const opts={};pool.forEach(n=>{const o=[...D[n-1][1].map(t=>[t,1]),...(W[n-1]||[]).map(t=>[t,0])];
+    for(let i=o.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[o[i],o[j]]=[o[j],o[i]]}opts[n]=o});
+  X={qs:pool,opts,sel:{},pin:[],cur:0,done:false};saveX();render();
+}
+const xRight=n=>X.opts[n].every((o,i)=>!!o[1]===(X.sel[n]||[]).includes(i));
+const xAnswered=n=>(X.sel[n]||[]).length>0;
+function renderExam(){
+  const v=$("view");
+  if(!X||!X.qs||!X.qs.length){
+    const sizes=[20,50].filter(x=>x<deck.length);
+    v.innerHTML=`<section class="start"><h2>Prüfungssimulation</h2>
+      <p>Wie in der echten Lernkontrolle: Du kreuzt bei jeder Aufgabe an und siehst die Lösung erst nach «Prüfung einreichen». Jede Aufgabe gibt 1 Punkt, wenn alle richtigen und keine falschen Antworten angekreuzt sind.</p>
+      <p>Aus der aktuellen Auswahl «${TOPICS.find(t=>t[0]===S.topic)[1]}» (${deck.length} Fragen), zufällig gemischt.</p>
+      <div class="row">${sizes.map(x=>`<button class="btn" data-size="${x}">${x} Aufgaben</button>`).join("")}<button class="btn primary" data-size="${deck.length}">Alle ${deck.length} Aufgaben</button></div></section>`;
+    v.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>startExam(+b.dataset.size));
+    if(!deck.length)v.innerHTML=`<p class="empty">In dieser Auswahl sind keine Fragen. Wähle oben ein anderes Thema.</p>`;
+    return;
+  }
+  const cur=Math.min(X.cur,X.qs.length-1),n=X.qs[cur],L="ABCDEFGH";
+  const answered=X.qs.filter(xAnswered).length,pts=X.done?X.qs.filter(xRight).length:0;
+  const sel=X.sel[n]||[];
+  const head=X.done
+    ?`<div class="score"><div><div class="big">${pts}<small> / ${X.qs.length} Punkte</small></div><div class="prog" style="margin-top:6px">${Math.round(pts/X.qs.length*100)} % · ${X.qs.length-pts} falsch</div></div>
+       <div class="row"><button class="btn" id="x-wrong">Nur Fehler ansehen</button><button class="btn primary" id="x-new">Neue Prüfung</button></div></div>`
+    :`<div class="ehead"><div class="prog"><div class="track"><i class="k" style="width:${answered/X.qs.length*100}%"></i></div><span>${answered}/${X.qs.length} beantwortet</span></div>
+       <div class="row"><button class="btn ${confirmSubmit?"no":"primary"}" id="x-submit">${confirmSubmit?(answered<X.qs.length?`${X.qs.length-answered} offen. Trotzdem einreichen?`:"Wirklich einreichen?"):"Prüfung einreichen"}</button>${confirmSubmit?'<button class="btn" id="x-cancel">Abbrechen</button>':""}</div></div>`;
+  const tabs=X.qs.map((q,i)=>{let c="tab";if(i===cur)c+=" cur";if(X.done)c+=xRight(q)?" ok":" bad";else{if(xAnswered(q))c+=" ans";if(X.pin.includes(q))c+=" pin"}
+    return `<button class="${c}" data-tab="${i}" aria-label="Aufgabe ${i+1}">Aufgabe ${i+1}</button>`}).join("");
+  const opts=X.opts[n].map((o,i)=>{const on=sel.includes(i);let cls="opt"+(on?" on":""),note="";
+    if(X.done){if(o[1]&&on){cls+=" good";note="richtig"}else if(o[1]){cls+=" miss";note="fehlt"}else if(on){cls+=" wrongsel";note="falsch"}else cls+=" dim"}
+    return `<button class="${cls}" data-o="${i}" ${X.done?"disabled":""} aria-pressed="${on}"><span class="box">${on?"✓":L[i]}</span><span class="ot">${esc(o[0])}</span>${note?`<span class="note">${note}</span>`:""}</button>`}).join("");
+  v.innerHTML=`<div class="exam">${head}<nav class="tabs" id="tabs">${tabs}</nav>
+    <section class="epanel"><div class="etop"><span><b>Aufgabe ${cur+1}</b>${X.done?"":`<button class="pinb" id="x-pin" aria-pressed="${X.pin.includes(n)}">${X.pin.includes(n)?"Markiert":"Markieren"}</button>`}</span>
+      <span class="pts">${X.done?(xRight(n)?"1.00":"0.00")+" / ":""}1.00 Punkt</span></div>
+      <div class="egrid"><p class="q">${esc(D[n-1][0])}</p><div class="opts">${opts}</div></div>
+      <div class="meta"><span>Katalog-Frage ${n}</span><span class="tag">${topicName(n)}</span></div>
+      <div class="enav"><button class="btn nav" id="x-prev" ${cur===0?"disabled":""}>← Zurück</button><button class="btn nav" id="x-next" ${cur>=X.qs.length-1?"disabled":""}>Weiter →</button></div></section></div>`;
+  const t=v.querySelector(".tab.cur");if(t)t.scrollIntoView({block:"nearest",inline:"center"});
+  v.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{X.cur=+b.dataset.tab;saveX();render()});
+  v.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{const i=+b.dataset.o,a=X.sel[n]||[];X.sel[n]=a.includes(i)?a.filter(x=>x!==i):[...a,i];saveX();render()});
+  $("x-prev").onclick=()=>{X.cur=cur-1;saveX();render()};$("x-next").onclick=()=>{X.cur=cur+1;saveX();render()};
+  if($("x-pin"))$("x-pin").onclick=()=>{X.pin=X.pin.includes(n)?X.pin.filter(x=>x!==n):[...X.pin,n];saveX();render()};
+  if($("x-submit"))$("x-submit").onclick=()=>{if(!confirmSubmit){confirmSubmit=true;render();return}
+    confirmSubmit=false;X.done=true;X.cur=0;
+    X.qs.forEach(q=>{if(!xAnswered(q))return;if(xRight(q))S.r[q]="k";else{S.r[q]="n";S.e[q]=(S.e[q]||0)+1}});save();saveX();render()};
+  if($("x-cancel"))$("x-cancel").onclick=()=>{confirmSubmit=false;render()};
+  if($("x-new"))$("x-new").onclick=()=>{X=null;saveX();render()};
+  if($("x-wrong"))$("x-wrong").onclick=()=>{const i=X.qs.findIndex((q,k)=>k>X.cur&&!xRight(q));const j=i>=0?i:X.qs.findIndex(q=>!xRight(q));if(j>=0){X.cur=j;saveX();render()}};
+}
 TOPICS.forEach(([id,name])=>{const b=document.createElement("button");b.className="chip";b.dataset.t=id;b.id="t-"+id;b.textContent=name;b.onclick=()=>{S.topic=id;save();buildDeck();render()};$("filters").appendChild(b)});
 $("m-cards").onclick=()=>{S.mode="cards";save();render()};
 $("m-list").onclick=()=>{S.mode="list";save();render()};
+$("m-exam").onclick=()=>{S.mode="exam";save();render()};
 $("shuffle").onclick=()=>{S.shuffle=!S.shuffle;save();buildDeck();render()};
 let armed=false;
 $("reset").onclick=e=>{if(!armed){armed=true;e.target.textContent="Wirklich zurücksetzen?";setTimeout(()=>{armed=false;e.target.textContent="Fortschritt zurücksetzen"},3000);return}
   S.r={};S.e={};save();armed=false;e.target.textContent="Fortschritt zurücksetzen";buildDeck();render()};
 document.addEventListener("keydown",e=>{
+  if(S.mode==="exam"&&X&&X.qs&&X.qs.length){if(e.target.closest&&e.target.closest("button"))return;if(e.key==="ArrowLeft"&&X.cur>0){X.cur--;saveX();render()}else if(e.key==="ArrowRight"&&X.cur<X.qs.length-1){X.cur++;saveX();render()}return}
   if(S.mode!=="cards"||!deck.length||!Q)return;
   const k=e.key.toLowerCase(),L="abcdefgh";
   if(L.includes(k)&&k.length===1){toggle(L.indexOf(k))}
