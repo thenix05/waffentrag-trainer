@@ -358,7 +358,16 @@ function renderBar(){
   $("ptxt").textContent=`${k}/${D.length} gewusst`;
   $("restxt").textContent=`${n} zuletzt falsch · ${Object.keys(S.e).filter(x=>S.e[x]>0).length} schon mal falsch · ${D.length-k-n} offen`;
 }
+const SKEY="wt-trainer-session-v1";
+function saveSession(){try{const qs={};for(const k in QS){const q=QS[k];qs[k]={o:q.opts.map(o=>[o.t,o.ok]),s:[...q.sel],c:q.checked}}
+  localStorage.setItem(SKEY,JSON.stringify({topic:S.topic,shuffle:S.shuffle,deck,pos,qs}))}catch(e){}}
+function loadSession(){try{const x=JSON.parse(localStorage.getItem(SKEY)||"null");
+  if(!x||x.topic!==S.topic||x.shuffle!==S.shuffle||!Array.isArray(x.deck))return false;
+  deck=x.deck.filter(n=>n>=1&&n<=D.length);pos=Math.min(Math.max(0,x.pos|0),Math.max(0,deck.length-1));QS={};Q=null;
+  for(const k in x.qs){const q=x.qs[k];QS[k]={n:+k,opts:q.o.map(([t,ok])=>({t,ok})),sel:new Set(q.s),checked:!!q.c}}
+  return true}catch(e){return false}}
 function render(){
+  saveSession();
   renderBar();
   const v=$("view");
   if(!deck.length){v.innerHTML=`<p class="empty">${S.topic==="wrong"||S.topic==="ever"?"Hier ist noch keine Frage. Mach zuerst einen Durchgang, falsche Antworten landen dann hier.":"Alles erledigt in dieser Auswahl."}</p>`;return}
@@ -434,6 +443,6 @@ document.addEventListener("keydown",e=>{
   else if(e.key==="Enter"&&Q.checked){e.preventDefault();advance()}
   else if(e.key==="ArrowLeft")go(-1);else if(e.key==="ArrowRight")go(1);
 });
-buildDeck();render();
+if(!loadSession())buildDeck();render();
 </script>
 </body></html>
