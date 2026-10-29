@@ -61,6 +61,7 @@ button{font:inherit;cursor:pointer}
 .reset{background:none;border:0;color:var(--muted);font-family:var(--display);font-size:13px;text-decoration:underline;padding:0}
 .opts{display:flex;flex-direction:column;gap:8px}
 .opt{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:start;text-align:left;font-family:var(--body);font-size:16px;line-height:1.45;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.opt .ot{user-select:text;-webkit-user-select:text}
 .opt .box{width:26px;height:26px;border-radius:6px;border:1.5px solid var(--muted);display:grid;place-items:center;font-family:var(--mono);font-size:13px;color:var(--muted)}
 .opt.on{border-color:var(--ink)} .opt.on .box{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .opt:disabled{cursor:default}
@@ -408,7 +409,7 @@ function render(){
   if(pos>=deck.length)pos=deck.length-1;
   const n=deck[pos];
   if(!Q||Q.n!==n)newQ(n);
-  const L="ABCDEFGH";
+  const L="12345678";
   const right=Q.checked?isRight():null;
   v.innerHTML=`<div style="display:flex;flex-direction:column;gap:12px">
    <div class="card">
@@ -428,7 +429,7 @@ function render(){
       :`<p class="hint" id="check" style="grid-column:span 2;margin:auto;text-align:center">${Q.opts.filter((o,i)=>o.ok&&!Q.sel.has(i)).length===Q.opts.filter(o=>o.ok).length?"Wähle eine Antwort":"Weiter auswählen, bis alle richtigen markiert sind"}</p>`}
     <button class="btn nav" id="next" ${pos>=deck.length-1?"disabled":""} aria-label="Überspringen">→</button>
    </div>
-   <div class="keys">A–E = auswählen · Enter = weiter · ←/→ = blättern</div></div>`;
+   <div class="keys">1–5 = auswählen · Enter = weiter · ←/→ = blättern</div></div>`;
   v.querySelectorAll(".opt").forEach(b=>b.onclick=()=>toggle(+b.dataset.i));
   $("prev").onclick=()=>go(-1);$("next").onclick=()=>go(1);
   if($("check"))$("check").onclick=check;
@@ -487,7 +488,7 @@ function renderExam(){
     if(!deck.length)v.innerHTML=`<p class="empty">In dieser Auswahl sind keine Fragen. Wähle oben ein anderes Thema.</p>`;
     return;
   }
-  const cur=Math.min(X.cur,X.qs.length-1),n=X.qs[cur],L="ABCDEFGH";
+  const cur=Math.min(X.cur,X.qs.length-1),n=X.qs[cur],L="12345678";
   const answered=X.qs.filter(xAnswered).length,pts=X.done?X.qs.filter(xRight).length:0;
   const sel=X.sel[n]||[];
   const head=X.done
@@ -527,10 +528,11 @@ let armed=false;
 $("reset").onclick=e=>{if(!armed){armed=true;e.target.textContent="Wirklich zurücksetzen?";setTimeout(()=>{armed=false;e.target.textContent="Fortschritt zurücksetzen"},3000);return}
   S.r={};S.e={};save();armed=false;e.target.textContent="Fortschritt zurücksetzen";buildDeck();render()};
 document.addEventListener("keydown",e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey)return;
+  if(S.mode==="exam"&&X&&X.qs&&X.qs.length&&!X.done&&/^[1-8]$/.test(e.key)){const n=X.qs[X.cur],i=+e.key-1;if(i<X.opts[n].length){const a=X.sel[n]||[];X.sel[n]=a.includes(i)?a.filter(x=>x!==i):[...a,i];saveX();render()}return}
   if(S.mode==="exam"&&X&&X.qs&&X.qs.length){if(e.target.closest&&e.target.closest("button"))return;if(e.key==="ArrowLeft"&&X.cur>0){X.cur--;saveX();render()}else if(e.key==="ArrowRight"&&X.cur<X.qs.length-1){X.cur++;saveX();render()}return}
   if(S.mode!=="cards"||!deck.length||!Q)return;
-  const k=e.key.toLowerCase(),L="abcdefgh";
-  if(L.includes(k)&&k.length===1){toggle(L.indexOf(k))}
+  if(/^[1-8]$/.test(e.key)){toggle(+e.key-1)}
   else if(e.key==="Enter"&&Q.checked){e.preventDefault();advance()}
   else if(e.key==="ArrowLeft")go(-1);else if(e.key==="ArrowRight")go(1);
 });
