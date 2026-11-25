@@ -1,5 +1,7 @@
 # Waffentrag-Trainer
 
+Live ausprobieren: https://thenix05.github.io/waffentrag-trainer/
+
 Multiple-Choice-Trainer zur Vorbereitung auf die Prüfung Waffentragen (Schweiz).
 
 - Alle 106 Fragen aus dem öffentlich publizierten Fragenkatalog des Bundesamts für Polizei fedpol (Stand 02.10.2019)
